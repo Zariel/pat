@@ -91,11 +91,14 @@ import (
 // Status to "405 Method Not Allowed".
 type PatternServeMux struct {
 	handlers map[string][]*patHandler
+	NotFound http.Handler
 }
 
 // New returns a new PatternServeMux.
 func New() *PatternServeMux {
-	return &PatternServeMux{make(map[string][]*patHandler)}
+	return &PatternServeMux{
+		handlers: make(map[string][]*patHandler),
+	}
 }
 
 // ServeHTTP matches r.URL.Path against its routing table using the rules
@@ -125,7 +128,11 @@ func (p *PatternServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(allowed) == 0 {
-		http.NotFound(w, r)
+		if p.NotFound != nil {
+			p.NotFound.ServeHTTP(w, r)
+		} else {
+			http.NotFound(w, r)
+		}
 		return
 	}
 
